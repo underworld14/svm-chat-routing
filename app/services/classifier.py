@@ -3,10 +3,12 @@ import re
 from typing import Any
 
 import joblib
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
 from app.config import settings
 
 # MUST match training/train.py::preprocess_text so inference == training.
+# lowercase -> remove non-alpha -> stopword removal -> Sastrawi stemming
 STOPWORDS = {
     word.strip()
     for word in """
@@ -25,6 +27,7 @@ class IntentClassifier:
     def __init__(self, model_path: str | None = None) -> None:
         self.model_path = Path(model_path or settings.MODEL_PATH)
         self.model: Any | None = None
+        self.stemmer = StemmerFactory().create_stemmer()
 
     def load(self) -> Any | None:
         """Load the trained SVM pipeline if available."""
@@ -42,10 +45,12 @@ class IntentClassifier:
         return self.model
 
     def preprocess(self, text: str) -> str:
-        """Normalize + stopword removal. IDENTICAL to training/train.py."""
+        """Lowercase -> remove non-alpha -> stopword removal -> Sastrawi stemming.
+        IDENTICAL to training/train.py."""
         text = str(text).lower()
         text = re.sub(r"[^a-z\s]", " ", text)
         tokens = [t for t in text.split() if t not in STOPWORDS]
+        tokens = [self.stemmer.stem(t) for t in tokens]
         return " ".join(tokens)
 
     def predict(self, text: str) -> str:

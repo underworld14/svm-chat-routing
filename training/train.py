@@ -28,6 +28,7 @@ matplotlib.use("Agg")  # headless / terminal safe
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
@@ -37,6 +38,7 @@ from sklearn.svm import LinearSVC
 
 # ---------------------------------------------------------------------------
 # 1. SHARED PREPROCESSING (dipakai train + inference -> konsisten)
+#    lowercase -> hapus non-alpha -> stopword removal -> Sastrawi stemming
 # ---------------------------------------------------------------------------
 STOPWORDS = {
     word.strip()
@@ -51,12 +53,17 @@ STOPWORDS = {
     if word.strip()
 }
 
+# Stemmer diinisialisasi sekali (Sastrawi StemmerFactory lambat kalau per-call)
+STEMMER = StemmerFactory().create_stemmer()
+
 
 def preprocess_text(text: str) -> str:
-    """Normalisasi + stopword removal. SAMA PERSIS dengan app/services/classifier.py."""
+    """Lowercase -> remove non-alpha -> stopword removal -> Sastrawi stemming.
+    SAMA PERSIS dengan app/services/classifier.py."""
     text = str(text).lower()
     text = re.sub(r"[^a-z\s]", " ", text)
     tokens = [t for t in text.split() if t not in STOPWORDS]
+    tokens = [STEMMER.stem(t) for t in tokens]
     return " ".join(tokens)
 
 
