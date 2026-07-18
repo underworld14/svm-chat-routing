@@ -7,15 +7,13 @@ from fastapi.staticfiles import StaticFiles
 
 from app import models  # noqa: F401
 from app.config import settings
-from app.database import Base, engine
-from app.ws.manager import ConnectionManager
+from app.database import Base, engine, ensure_sqlite_columns
+from app.ws.manager import manager
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 ASSETS_DIR = STATIC_DIR / "assets"
 INDEX_HTML = STATIC_DIR / "index.html"
-
-manager = ConnectionManager()
 
 app = FastAPI(
     title="POC Chat Routing API",
@@ -35,14 +33,15 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
+    ensure_sqlite_columns()
 
 
 # ── API Routes ──────────────────────────────────────────────
 
-from app.router import admin_router, chat_router  # noqa: E402
+from app.router import admin_router, waha_router  # noqa: E402
 
-app.include_router(chat_router)
 app.include_router(admin_router)
+app.include_router(waha_router)
 
 
 # ── WebSocket Routes ────────────────────────────────────────
@@ -55,16 +54,6 @@ async def ws_admin(websocket: WebSocket) -> None:
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect_admin(websocket)
-
-
-@app.websocket("/ws/client/{session_id}")
-async def ws_client(websocket: WebSocket, session_id: int) -> None:
-    await manager.connect_client(websocket, session_id)
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect_client(session_id)
 
 
 # ── Production: serve built frontend from app/static ─────────
