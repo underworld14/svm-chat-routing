@@ -34,6 +34,10 @@ htmlcov/
 *.sqlite
 *.sqlite3
 chat_routing.db
+test_chat_routing.db
+tests/test_chat_routing.db
+
+.waha-sessions/
 
 # --- Frontend (Vite / npm) ---
 frontend/node_modules/

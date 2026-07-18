@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
+    WAHA_BASE_URL: str = "http://localhost:3000"
+    WAHA_API_KEY: str = "waha-secret-change-me"
+    WAHA_SESSION_NAME: str = "default"
+    WAHA_HOOK_HMAC_KEY: str = "waha-hmac-change-me"
 
     model_config = SettingsConfigDict(
         env_file=".env",

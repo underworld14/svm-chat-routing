@@ -20,11 +20,18 @@ class MessageRole(str, enum.Enum):
     system = "system"
 
 
+class ChatChannel(str, enum.Enum):
+    whatsapp = "whatsapp"
+    # Legacy value kept for existing SQLite rows only — new code always uses whatsapp.
+    web = "web"
+
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=True)
+    phone = Column(String(32), unique=True, index=True, nullable=True)
     name = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -72,6 +79,13 @@ class ChatSession(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     client_id = Column(String(100), nullable=False, index=True)
+    channel = Column(
+        Enum(ChatChannel, name="chat_channel", native_enum=False),
+        default=ChatChannel.whatsapp,
+        nullable=False,
+    )
+    whatsapp_chat_id = Column(String(128), nullable=True, index=True)
+    auto_ack_sent = Column(Boolean, default=False, nullable=False)
     intent_id = Column(Integer, ForeignKey("intents.id"), nullable=True)
     assigned_agent_id = Column(Integer, ForeignKey("agents.id"), nullable=True)
     status = Column(
@@ -97,6 +111,9 @@ class Message(Base):
         nullable=False,
     )
     content = Column(Text, nullable=False)
+    external_id = Column(String(255), unique=True, nullable=True, index=True)
+    # Full WAHA webhook JSON for this inbound message (debug / future use).
+    raw_event = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     session = relationship("ChatSession", back_populates="messages")

@@ -1,0 +1,23 @@
+services:
+  waha:
+    # gows-arm for Apple Silicon; on amd64/x86_64 use: devlikeapro/waha:gows
+    image: ${WAHA_IMAGE:-devlikeapro/waha:gows-arm}
+    restart: unless-stopped
+    ports:
+      # Bind all interfaces so OrbStack/Docker Desktop can proxy to the container.
+      # (127.0.0.1-only publish can RST against Nest/[::] listeners on some setups.)
+      - "3000:3000"
+    volumes:
+      - ./.waha-sessions:/app/.sessions
+    environment:
+      - WHATSAPP_DEFAULT_ENGINE=GOWS
+      - WHATSAPP_API_HOSTNAME=0.0.0.0
+      - WAHA_API_KEY=${WAHA_API_KEY:-waha-secret-change-me}
+      - WHATSAPP_HOOK_URL=${WHATSAPP_HOOK_URL:-http://host.docker.internal:8000/api/webhooks/waha}
+      - WHATSAPP_HOOK_EVENTS=message,session.status
+      - WHATSAPP_HOOK_HMAC_KEY=${WAHA_HOOK_HMAC_KEY:-waha-hmac-change-me}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
