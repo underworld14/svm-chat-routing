@@ -1,6 +1,9 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 function AppShell() {
+  const { pathname } = useLocation()
+  const onArchive = pathname.startsWith('/admin/archive')
+
   return (
     <div className="shell">
       <header className="shell__top">
@@ -16,8 +19,9 @@ function AppShell() {
           </NavLink>
           <NavLink
             to="/admin"
-            end
-            className={({ isActive }) => (isActive ? 'shell__link is-active' : 'shell__link')}
+            className={({ isActive }) =>
+              isActive && !onArchive ? 'shell__link is-active' : 'shell__link'
+            }
           >
             Admin
           </NavLink>

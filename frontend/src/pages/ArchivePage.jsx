@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { withAutoAckFlag } from '../admin/adminUtils'
 import AgentPanel from '../components/AgentPanel'
 
 function formatDate(value) {
@@ -41,7 +42,8 @@ function ArchivePage() {
     try {
       const res = await fetch(`/api/admin/sessions/${sessionId}/messages`)
       if (!res.ok) throw new Error('Could not load messages.')
-      setMessages(await res.json())
+      const data = await res.json()
+      setMessages(Array.isArray(data) ? data.map(withAutoAckFlag) : [])
     } catch (err) {
       setError(err.message)
     }
