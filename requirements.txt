@@ -1,7 +1,0 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-pydantic-settings
-python-multipart
-joblib
-scikit-learn==1.6.1
