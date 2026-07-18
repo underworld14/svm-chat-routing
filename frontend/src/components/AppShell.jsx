@@ -12,7 +12,7 @@ function AppShell() {
             to="/chat"
             className={({ isActive }) => (isActive ? 'shell__link is-active' : 'shell__link')}
           >
-            Chat
+            WhatsApp
           </NavLink>
           <NavLink
             to="/admin"

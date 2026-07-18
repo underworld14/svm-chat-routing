@@ -1,3 +1,22 @@
+function displayUserName(session) {
+  const name = session?.user?.name?.trim()
+  if (name) return name
+  return session?.user?.phone || session?.client_id || `Session #${session?.id}`
+}
+
+function messageLabel(msg, session) {
+  if (msg.role === 'user') {
+    return displayUserName(session)
+  }
+  if (msg.role === 'system') {
+    return 'System'
+  }
+  if (msg.auto_ack) {
+    return 'Auto-ack'
+  }
+  return session?.assigned_agent?.name || 'Agent'
+}
+
 function AgentPanel({
   session,
   messages,
@@ -20,15 +39,14 @@ function AgentPanel({
   }
 
   const isArchive = mode === 'archive'
+  const contact = session.user?.phone || session.whatsapp_chat_id || session.client_id
 
   return (
     <div className="panel panel--desk">
       <header className="desk__header">
         <div>
-          <h2 className="title title--sm">
-            {session.user?.name ?? `Session #${session.id}`}
-          </h2>
-          <p className="subtitle">{session.user?.email}</p>
+          <h2 className="title title--sm">{displayUserName(session)}</h2>
+          <p className="subtitle">WhatsApp · {contact}</p>
         </div>
         <div className="desk__aside">
           <div className="route route--compact">
@@ -61,7 +79,7 @@ function AgentPanel({
                 onClick={onArchive}
                 disabled={actionBusy}
               >
-                Archive
+                Archive & Close
               </button>
             )}
             <button
@@ -82,7 +100,7 @@ function AgentPanel({
         ) : (
           messages.map((msg) => (
             <div key={msg.id} className={`note note--${msg.role}`}>
-              <span className="note__role">{msg.role}</span>
+              <span className="note__role">{messageLabel(msg, session)}</span>
               <p>{msg.content}</p>
             </div>
           ))

@@ -129,7 +129,7 @@ function ArchivePage() {
                         {session.user?.name ?? `Session #${session.id}`}
                       </strong>
                       <span className="card__intent">
-                        {session.intent?.name ?? 'unclassified'}
+                        WA · {session.intent?.name ?? 'unclassified'}
                       </span>
                       <span className="card__meta">
                         <span>{session.assigned_agent?.name ?? 'Unassigned'}</span>
