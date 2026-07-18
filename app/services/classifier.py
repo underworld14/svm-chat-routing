@@ -6,6 +6,20 @@ import joblib
 
 from app.config import settings
 
+# MUST match training/train.py::preprocess_text so inference == training.
+STOPWORDS = {
+    word.strip()
+    for word in """
+    dari, yang, di, ke, dan, ini, itu, saja, juga, dengan, pada, untuk, tidak, akan, dapat, telah,
+    karena, tetapi, atau, adalah, mereka, kami, kita, saya, ada, sudah, bisa, mau, nya, pun, ya, deh,
+    sih, kok, loh, dong, kah, punya, sedang, belum, agar, supaya, sangat, paling, lebih, kurang,
+    semua, setiap, seorang, tersebut, sendiri, secara, antara, melalui, setelah, sebelum,
+    sementara, seraya, sampai, sejak, mengenai, tentang, seperti, sebagai, selain, bagi, demi, oleh,
+    tanpa, dalam, atas, bawah, luar, depan, belakang, dekat, jauh, sekitar, kira
+    """.split(",")
+    if word.strip()
+}
+
 
 class IntentClassifier:
     def __init__(self, model_path: str | None = None) -> None:
@@ -28,11 +42,11 @@ class IntentClassifier:
         return self.model
 
     def preprocess(self, text: str) -> str:
-        """Normalize text before classification."""
-        normalized = str(text).lower()
-        normalized = re.sub(r"[^a-z\s]", " ", normalized)
-        normalized = re.sub(r"\s+", " ", normalized).strip()
-        return normalized
+        """Normalize + stopword removal. IDENTICAL to training/train.py."""
+        text = str(text).lower()
+        text = re.sub(r"[^a-z\s]", " ", text)
+        tokens = [t for t in text.split() if t not in STOPWORDS]
+        return " ".join(tokens)
 
     def predict(self, text: str) -> str:
         """Predict user intent from text."""
