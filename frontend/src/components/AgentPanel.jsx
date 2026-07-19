@@ -1,3 +1,26 @@
+import { useEffect, useRef } from 'react'
+import ChatBubble from './ChatBubble'
+import { formatMessageTime } from '../admin/adminUtils'
+
+function displayUserName(session) {
+  const name = session?.user?.name?.trim()
+  if (name) return name
+  return session?.user?.phone || session?.client_id || `Room #${session?.id}`
+}
+
+function messageLabel(msg, session) {
+  if (msg.role === 'user') {
+    return displayUserName(session)
+  }
+  if (msg.role === 'system') {
+    return 'System'
+  }
+  if (msg.auto_ack) {
+    return 'Auto-ack'
+  }
+  return session?.assigned_agent?.name || 'Agent'
+}
+
 function AgentPanel({
   session,
   messages,
@@ -11,44 +34,67 @@ function AgentPanel({
   onDelete,
   actionBusy = false,
 }) {
+  const threadRef = useRef(null)
+  const endRef = useRef(null)
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages])
+
   if (!session) {
     return (
-      <div className="panel panel--empty">
-        <p className="empty">Select a session to view the conversation and reply.</p>
+      <div className="chatroom chatroom--empty">
+        <p className="empty">Select a room to view the conversation and reply.</p>
       </div>
     )
   }
 
   const isArchive = mode === 'archive'
+  const contact = session.user?.phone || session.whatsapp_chat_id || session.client_id
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      if (!sending && reply.trim()) onSendReply()
+    }
+  }
 
   return (
-    <div className="panel panel--desk">
-      <header className="desk__header">
-        <div>
-          <h2 className="title title--sm">
-            {session.user?.name ?? `Session #${session.id}`}
-          </h2>
-          <p className="subtitle">{session.user?.email}</p>
+    <div className="chatroom">
+      <header className="chatroom__header">
+        <div className="chatroom__identity">
+          <h2 className="chatroom__title">{displayUserName(session)}</h2>
+          <p className="chatroom__subtitle">
+            <span className="chatroom__room-id">#{session.id}</span>
+            <span aria-hidden="true">·</span>
+            <span>WhatsApp</span>
+            <span aria-hidden="true">·</span>
+            <span>{contact}</span>
+          </p>
         </div>
-        <div className="desk__aside">
-          <div className="route route--compact">
-            <div>
-              <p className="route__label">Intent</p>
-              <p className="route__value">{session.intent?.name ?? 'unclassified'}</p>
-            </div>
-            <span className="route__sep" aria-hidden="true">
+        <div className="chatroom__meta">
+          <div className="chatroom__route">
+            <span className="chatroom__route-pill">
+              <span className="chatroom__route-label">Intent</span>
+              <span className="chatroom__route-value">
+                {session.intent?.name ?? 'unclassified'}
+              </span>
+            </span>
+            <span className="chatroom__route-arrow" aria-hidden="true">
               →
             </span>
-            <div>
-              <p className="route__label">Agent</p>
-              <p className="route__value">{session.assigned_agent?.name ?? 'Unassigned'}</p>
-            </div>
+            <span className="chatroom__route-pill">
+              <span className="chatroom__route-label">Agent</span>
+              <span className="chatroom__route-value">
+                {session.assigned_agent?.name ?? 'Unassigned'}
+              </span>
+            </span>
           </div>
-          <div className="desk__actions">
+          <div className="chatroom__actions">
             {isArchive ? (
               <button
                 type="button"
-                className="btn"
+                className="btn btn--sm"
                 onClick={onRestore}
                 disabled={actionBusy}
               >
@@ -57,7 +103,7 @@ function AgentPanel({
             ) : (
               <button
                 type="button"
-                className="btn"
+                className="btn btn--sm"
                 onClick={onArchive}
                 disabled={actionBusy}
               >
@@ -66,7 +112,7 @@ function AgentPanel({
             )}
             <button
               type="button"
-              className="btn btn--danger"
+              className="btn btn--sm btn--danger"
               onClick={onDelete}
               disabled={actionBusy}
             >
@@ -76,44 +122,59 @@ function AgentPanel({
         </div>
       </header>
 
-      <div className="thread thread--desk" aria-live="polite">
-        {messages.length === 0 ? (
-          <p className="empty">No messages yet.</p>
-        ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className={`note note--${msg.role}`}>
-              <span className="note__role">{msg.role}</span>
-              <p>{msg.content}</p>
-            </div>
-          ))
+      <div className="chatroom__stage">
+        <div className="chatroom__thread" ref={threadRef} aria-live="polite">
+          {messages.length === 0 ? (
+            <p className="empty">No messages yet.</p>
+          ) : (
+            messages.map((msg) => (
+              <ChatBubble
+                key={msg.id}
+                role={msg.role === 'user' ? 'user' : 'agent'}
+                label={messageLabel(msg, session)}
+                content={msg.content}
+                timestamp={
+                  msg.created_at
+                    ? { iso: msg.created_at, display: formatMessageTime(msg.created_at) }
+                    : null
+                }
+              />
+            ))
+          )}
+          <div ref={endRef} />
+        </div>
+
+        {!isArchive && (
+          <form
+            className="chatroom__composer"
+            onSubmit={(e) => {
+              e.preventDefault()
+              onSendReply()
+            }}
+          >
+            <label className="chatroom__composer-field">
+              <span className="visually-hidden">Reply</span>
+              <textarea
+                className="chatroom__input"
+                name="reply"
+                value={reply}
+                onChange={(e) => onReplyChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type a message…"
+                rows={1}
+                autoComplete="off"
+              />
+            </label>
+            <button
+              type="submit"
+              className="btn btn--primary chatroom__send"
+              disabled={sending || !reply.trim()}
+            >
+              {sending ? '…' : 'Send'}
+            </button>
+          </form>
         )}
       </div>
-
-      {!isArchive && (
-        <form
-          className="stack"
-          onSubmit={(e) => {
-            e.preventDefault()
-            onSendReply()
-          }}
-        >
-          <label className="field">
-            <span className="field__label">Reply</span>
-            <textarea
-              className="field__textarea"
-              name="reply"
-              value={reply}
-              onChange={(e) => onReplyChange(e.target.value)}
-              placeholder="Type your reply…"
-              rows={3}
-              autoComplete="off"
-            />
-          </label>
-          <button type="submit" className="btn btn--primary" disabled={sending || !reply.trim()}>
-            {sending ? 'Sending…' : 'Send reply'}
-          </button>
-        </form>
-      )}
     </div>
   )
 }
